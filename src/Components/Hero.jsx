@@ -27,10 +27,9 @@ const Hero = ({ data }) => {
     };
 
 
-
     return (
         <div className="carousel w-full" style={{ height: '400px' }}>
-            {data.forEach((result, index) => (
+            {data.map((result, index) => (
                 
                 <div key={index} id={`slide${index + 1}`} className="carousel-item relative w-full h-full">
                     <div className="flex flex-row w-full gap-2">
@@ -59,10 +58,14 @@ const Hero = ({ data }) => {
                                     <button className="flex-auto rounded-box w-24 bg-primary text-white">More</button>
                                 </div>
                             </div>
-                            <div className="flex flex-row">
+                            <div className="flex flex-row gap-2">
                                 {
-                                    console.log(result)
-                                }{console.log(result.images)
+                                    
+                                    result.images.slice(0, 2).map((image, index) => (
+                                        <div key={index} className="flex-auto">
+                                            <img className='rounded-box' src={`https://image.tmdb.org/t/p/w500/${image.file_path}`} alt="" />
+                                        </div>
+                                    ))
                                 }
                             </div>
                         </div>

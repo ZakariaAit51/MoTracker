@@ -6,62 +6,68 @@ import './App.css';
 
 function App() {
   const [data, setData] = useState(null);
-  const [imageData, setImageData] = useState(null);
   const [error, setError] = useState(null);
-  const tmdbAuthorizationToken = import.meta.env.VITE_TMDB_AUTHORIZATION; // get the Authorization token from the environment variable
+  const tmdbAuthorizationToken = import.meta.env.VITE_TMDB_AUTHORIZATION;
   const url = `https://api.themoviedb.org/3/discover/movie?include_adult=false&include_video=false&language=en-US&page=1&sort_by=popularity.desc`;
-  const options = { // make a GET request to the API
+  const options = {
     headers: {
       accept: 'application/json',
       Authorization: `Bearer ${tmdbAuthorizationToken}`,
     },
-  }
-  const fetchImage = async (id) => {
+  };
+
+  const fetchImage = async (id, backdropPath) => {
     try {
-      const response = await axios.get(`https://api.themoviedb.org/3/movie/${id}/images`, options);
-      data.results.forEach((result)=>{
-          if(result.id === id){
-          result['images'] = response.data.backdrops.sort((a, b) => b.vote_average - a.vote_average).slice(0, 5);          }
-      })
+      const response = await axios.get(
+        `https://api.themoviedb.org/3/movie/${id}/images`,
+        options
+      );
+      return response.data.backdrops
+        .filter((image) => image.file_path !== backdropPath && image.iso_639_1 === null)
+        .sort((a, b) => b.vote_average - a.vote_average) 
+        .slice(0, 5);
     } catch (error) {
       setError(error.message);
+      return [];
     }
-  }
+  };
+
   useEffect(() => {
-    const fetchData = async () => { // fetch data from the API
+    const fetchData = async () => {
       try {
         const response = await axios.get(url, options);
-        setData(response.data); // Set data to response.data instead of response
+        const movies = response.data.results;
+
+        // Fetch images for each movie
+        const moviesWithImages = await Promise.all(
+          movies.map(async (movie) => {
+            const images = await fetchImage(movie.id,movie.backdrop_path);
+            return { ...movie, images }; // Return movie object with images
+          })
+        );
+
+        setData({ ...response.data, results: moviesWithImages });
       } catch (error) {
         setError(error.message);
       }
     };
-    fetchData(); // call the function
 
-  }, [tmdbAuthorizationToken]); // re-run the effect if the API key changes
-  if (data) {
-    console.log('worked');
-    data.results.forEach((dataItem) => fetchImage(dataItem.id));
-    console.log(data.results[0].images);
-  }
-// data.results.map((dataItem)=>(fetchImage(dataItem.id)))    
+    fetchData();
+  }, [tmdbAuthorizationToken]);
 
-  
   if (error) {
-    // If there is an error, display it
     return <div>Error: {error}</div>;
   }
 
   if (!data) {
-    // If there is no data, display a loading message
     return <div>Loading...</div>;
   }
 
   return (
-  <main className='p-2'>
-    {/* <PopularMovies data={data.results}/> */}
-    <Hero data={data.results} />
-  </main>
+    <main className="p-2">
+      <Hero data={data.results} />
+    </main>
   );
 }
+
 export default App;
